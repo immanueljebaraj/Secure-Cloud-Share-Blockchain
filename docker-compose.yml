@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: fyp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: fyp
+      MYSQL_USER: fypuser
+      MYSQL_PASSWORD: fyppass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - fyp-net
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: fyp-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"   # S3-compatible API
+      - "9001:9001"   # MinIO Console
+    volumes:
+      - minio-data:/data
+    networks:
+      - fyp-net
+
+  ganache:
+    image: trufflesuite/ganache-cli:latest
+    container_name: fyp-ganache
+    command: >
+      --host 0.0.0.0 --port 8545 --accounts 10 --deterministic
+    ports:
+      - "8545:8545"
+    networks:
+      - fyp-net
+
+  adminer:
+    image: adminer:latest
+    container_name: fyp-adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    networks:
+      - fyp-net
+
+volumes:
+  mysql-data:
+  minio-data:
+
+networks:
+  fyp-net:
+    driver: bridge

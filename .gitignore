@@ -1,0 +1,25 @@
+# Java / Maven
+fyp-backend/target/
+fyp-backend/.idea/
+fyp-backend/.classpath
+fyp-backend/.project
+fyp-backend/.settings/
+
+# Node / Hardhat
+blockchain/node_modules/
+blockchain/cache/
+blockchain/artifacts/
+
+# Environment / Secrets
+*.env
+.env
+.env.local
+fyp-backend/src/main/resources/application.properties
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
