@@ -22,6 +22,9 @@ import org.web3j.tx.response.TransactionReceiptProcessor;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Numeric;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 public class BlockchainService {
+    private static final Logger log = LoggerFactory.getLogger(BlockchainService.class);
     private final Web3j web3;
     private final RawTransactionManager txManager;
     private final String contractAddress;
@@ -87,8 +91,8 @@ public class BlockchainService {
 
                 // debug info
                 Credentials creds = Credentials.create(privateKey);
-                System.out.println("DEBUG: BlockchainService signing address = " + creds.getAddress());
-                System.out.println("DEBUG: Contract address configured = " + contractAddress);
+                log.debug("BlockchainService signing address = {}", creds.getAddress());
+                log.debug("Contract address configured = {}", contractAddress);
 
                 // Try the standard send via txManager first
                 BigInteger gasPrice = DefaultGasProvider.GAS_PRICE;
@@ -108,7 +112,7 @@ public class BlockchainService {
                 } catch (Exception ex) {
                     // if RPC fails for gas info, fall back to a conservative safe default
                     gasLimit = BigInteger.valueOf(1_000_000L);
-                    System.out.println("WARN: Couldn't get block gas limit, using fallback gasLimit=" + gasLimit);
+                    log.warn("Couldn't get block gas limit, using fallback gasLimit={}", gasLimit);
                 }
 
                 EthSendTransaction ethSend = txManager.sendTransaction(
@@ -120,20 +124,20 @@ public class BlockchainService {
                 );
 
                 if (ethSend != null) {
-                    System.out.println("DEBUG: ethSend.toString(): " + ethSend.toString());
+                    log.debug("ethSend.toString(): {}", ethSend.toString());
                     if (ethSend.getError() != null) {
-                        System.out.println("DEBUG: ethSend error message: " + ethSend.getError().getMessage());
-                        System.out.println("DEBUG: ethSend error data: " + ethSend.getError().getData());
+                        log.debug("ethSend error message: {}", ethSend.getError().getMessage());
+                        log.debug("ethSend error data: {}", ethSend.getError().getData());
                     }
                 } else {
-                    System.out.println("DEBUG: ethSend is NULL (no response from txManager.sendTransaction).");
+                    log.debug("ethSend is NULL (no response from txManager.sendTransaction).");
                 }
 
                 String txHash = (ethSend != null) ? ethSend.getTransactionHash() : null;
 
                 // Fallback: if no txHash or an error from the node, sign locally and use eth_sendRawTransaction
                 if (txHash == null || (ethSend != null && ethSend.getError() != null)) {
-                    System.out.println("DEBUG: Falling back to local signing + eth_sendRawTransaction");
+                    log.debug("Falling back to local signing + eth_sendRawTransaction");
 
                     // get nonce
                     EthGetTransactionCount nonceResp = web3.ethGetTransactionCount(
@@ -154,10 +158,10 @@ public class BlockchainService {
                     String hexValue = Numeric.toHexString(signedMessage);
 
                     EthSendTransaction rawSendResp = web3.ethSendRawTransaction(hexValue).send();
-                    System.out.println("DEBUG: rawSendResp: " + rawSendResp.toString());
+                    log.debug("rawSendResp: {}", rawSendResp.toString());
                     if (rawSendResp.getError() != null) {
-                        System.out.println("DEBUG: rawSendResp error: " + rawSendResp.getError().getMessage());
-                        System.out.println("DEBUG: rawSendResp error data: " + rawSendResp.getError().getData());
+                        log.debug("rawSendResp error: {}", rawSendResp.getError().getMessage());
+                        log.debug("rawSendResp error data: {}", rawSendResp.getError().getData());
                     }
                     txHash = rawSendResp.getTransactionHash();
                 }
@@ -168,7 +172,7 @@ public class BlockchainService {
                     AuditLog failLog = maybeFail.orElseGet(AuditLog::new);
                     failLog.setTxHash("FAILED_TO_SEND");
                     auditLogRepository.save(failLog);
-                    System.out.println("DEBUG: Transaction sending failed (txHash null). Audit updated with FAILED_TO_SEND.");
+                    log.debug("Transaction sending failed (txHash null). Audit updated with FAILED_TO_SEND.");
                     return null;
                 }
 
@@ -183,7 +187,7 @@ public class BlockchainService {
                 al.setBlockNumber(blockNumber);
                 auditLogRepository.save(al);
 
-                System.out.println("DEBUG: Transaction successful. txHash=" + txHash + " block=" + blockNumber);
+                log.debug("Transaction successful. txHash={} block={}", txHash, blockNumber);
                 return txHash;
             } catch (Exception e) {
                 e.printStackTrace();
