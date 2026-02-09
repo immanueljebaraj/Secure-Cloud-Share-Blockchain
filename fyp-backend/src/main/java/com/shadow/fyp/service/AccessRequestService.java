@@ -6,6 +6,8 @@ import com.shadow.fyp.repository.FileRepository;
 import com.shadow.fyp.model.FileEntity;
 import com.shadow.fyp.repository.AuditLogRepository;
 import com.shadow.fyp.model.AuditLog;
+import com.shadow.fyp.util.RequestContext;
+import com.shadow.fyp.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +41,11 @@ public class AccessRequestService {
 
     // Create a new access request (vendor asks)
     @Transactional
-    public AccessRequest createRequest(Long fileId, Long requesterId, String reason) {
+    public AccessRequest createRequest(Long fileId, String reason) {
+        if (RequestContext.role() != UserRole.VENDOR) {
+            throw new SecurityException("Only vendors can request access");
+        }
+        Long requesterId = RequestContext.userId();
         FileEntity f = fileRepo.findById(fileId).orElseThrow(() -> new IllegalArgumentException("File not found: " + fileId));
         AccessRequest req = new AccessRequest();
         req.setFileId(fileId);
@@ -68,7 +74,11 @@ public class AccessRequestService {
 
     // Approve request (owner approves)
     @Transactional
-    public AccessRequest approve(Long requestId, Long approverId) throws Exception {
+    public AccessRequest approve(Long requestId) throws Exception {
+        if (RequestContext.role() != UserRole.OWNER) {
+            throw new SecurityException("Only owners can approve");
+        }
+        Long approverId = RequestContext.userId();
         AccessRequest req = requestRepo.findById(requestId).orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
         if (!req.getOwnerId().equals(approverId)) throw new IllegalAccessException("Not owner");
 
@@ -96,7 +106,11 @@ public class AccessRequestService {
 
     // Reject request (owner rejects)
     @Transactional
-    public AccessRequest reject(Long requestId, Long approverId) throws Exception {
+    public AccessRequest reject(Long requestId) throws Exception {
+        if (RequestContext.role() != UserRole.OWNER) {
+            throw new SecurityException("Only owners can approve");
+        }
+        Long approverId = RequestContext.userId();
         AccessRequest req = requestRepo.findById(requestId).orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
         if (!req.getOwnerId().equals(approverId)) throw new IllegalAccessException("Not owner");
         req.setStatus(AccessRequest.Status.REJECTED);

@@ -1,31 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import {
   fetchOwnerRequests,
   approveRequest,
   rejectRequest
 } from "../api/requests";
 
-export default function OwnerRequests() {
+const OwnerRequests = forwardRef(({ onAuditUpdate }, ref) => {
   const ownerId = 1;
   const [requests, setRequests] = useState([]);
 
-  const load = async () => {
+  const loadRequests = async () => {
     const data = await fetchOwnerRequests(ownerId);
     setRequests(data);
   };
 
+  const loadAudit = async () => {
+    if (onAuditUpdate) {
+      await onAuditUpdate();
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    loadRequests
+  }));
+
   useEffect(() => {
-    load();
+    loadRequests();
   }, []);
 
   const approve = async (id) => {
-    await approveRequest(id, ownerId);
-    load();
+    await approveRequest(id);
+    await loadRequests();
+    await loadAudit();
   };
 
   const reject = async (id) => {
     await rejectRequest(id, ownerId);
-    load();
+    await loadRequests();
+    await loadAudit();
   };
 
   return (
@@ -58,4 +70,8 @@ export default function OwnerRequests() {
       ))}
     </div>
   );
-}
+});
+
+OwnerRequests.displayName = "OwnerRequests";
+
+export default OwnerRequests;

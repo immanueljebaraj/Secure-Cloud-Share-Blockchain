@@ -1,15 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import { fetchAuditLogs } from "../api/audit";
 
-export default function AuditLog() {
+const AuditLog = forwardRef((props, ref) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const loadAudit = async () => {
+    const data = await fetchAuditLogs();
+    setLogs(data);
+    setLoading(false);
+  };
+
+  useImperativeHandle(ref, () => ({
+    loadAudit
+  }));
+
   useEffect(() => {
-    fetchAuditLogs().then((data) => {
-      setLogs(data);
-      setLoading(false);
-    });
+    loadAudit();
   }, []);
 
   if (loading) return <p>Loading audit logs…</p>;
@@ -50,4 +57,8 @@ export default function AuditLog() {
       </table>
     </div>
   );
-}
+});
+
+AuditLog.displayName = "AuditLog";
+
+export default AuditLog;

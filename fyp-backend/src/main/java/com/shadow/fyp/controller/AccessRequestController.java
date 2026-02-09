@@ -16,8 +16,8 @@ public class AccessRequestController {
     }
 
     @PostMapping
-    public AccessRequest create(@RequestParam Long fileId, @RequestParam Long requesterId, @RequestParam(required = false) String reason) {
-        return svc.createRequest(fileId, requesterId, reason);
+    public AccessRequest create(@RequestParam Long fileId, @RequestParam(required = false) String reason) {
+        return svc.createRequest(fileId, reason);
     }
 
     @GetMapping("/owner/{ownerId}")
@@ -31,12 +31,12 @@ public class AccessRequestController {
     }
 
     @PostMapping("/{id}/approve")
-    public AccessRequest approve(@PathVariable Long id, @RequestParam Long approverId) throws Exception {
-        return svc.approve(id, approverId);
+    public AccessRequest approve(@PathVariable Long id) throws Exception {
+        return svc.approve(id);
     }
 
     @PostMapping("/{id}/reject")
-    public AccessRequest reject(@PathVariable Long id, @RequestParam Long approverId) throws Exception {
-        return svc.reject(id, approverId);
+    public AccessRequest reject(@PathVariable Long id) throws Exception {
+        return svc.reject(id);
     }
 }
