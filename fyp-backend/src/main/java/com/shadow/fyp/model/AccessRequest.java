@@ -31,6 +31,7 @@ private String presignedUrl; // populated when approved
 
     private Instant createdAt = Instant.now();
     private Instant updatedAt;
+    private Instant expiresAt;
 
     public enum Status { PENDING, APPROVED, REJECTED }
 
@@ -61,4 +62,7 @@ private String presignedUrl; // populated when approved
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public Instant getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
 }

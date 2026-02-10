@@ -11,6 +11,7 @@ import com.shadow.fyp.model.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.util.List;
@@ -85,6 +86,8 @@ public class AccessRequestService {
         FileEntity f = fileRepo.findById(req.getFileId()).orElseThrow(() -> new IllegalArgumentException("File not found: " + req.getFileId()));
 
         String presigned = minioService.generatePresignedUrl(f.getStorageUrl(), presignExpiry);
+        Instant expiry = Instant.now().plusSeconds(presignExpiry);
+        req.setExpiresAt(expiry);
         req.setPresignedUrl(presigned);
         req.setStatus(AccessRequest.Status.APPROVED);
         req.setUpdatedAt(Instant.now());
@@ -140,5 +143,43 @@ public class AccessRequestService {
 
     public List<AccessRequest> findByRequester(Long requesterId) {
         return requestRepo.findByRequesterId(requesterId);
+    }
+
+    public boolean isAccessValid(AccessRequest req) {
+        return req.getStatus() == AccessRequest.Status.APPROVED
+            && req.getExpiresAt() != null
+            && Instant.now().isBefore(req.getExpiresAt());
+    }
+
+    public ResponseEntity<?> download(Long requestId, Long requesterId) {
+        AccessRequest req = requestRepo.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found"));
+
+        if (!req.getRequesterId().equals(requesterId)) {
+            return ResponseEntity.status(403).body("Not your request");
+        }
+
+        if (!isAccessValid(req)) {
+            return ResponseEntity.status(403).body("Access expired or invalid");
+        }
+
+        AuditLog al = new AuditLog();
+        al.setFileId(req.getFileId());
+        al.setUserId(requesterId);
+        al.setAction("DOWNLOAD");
+        al.setPayload("{\"requestId\":" + req.getId() + "}");
+        auditLogRepository.save(al);
+
+        FileEntity f = fileRepo.findById(req.getFileId())
+                .orElseThrow(() -> new IllegalArgumentException("File not found"));
+
+        String url = minioService.generatePresignedUrl(
+                f.getStorageUrl(),
+                Math.min(60, presignExpiry) // SHORT expiry
+        );
+
+        return ResponseEntity.status(302)
+                .header("Location", url)
+                .build();
     }
 }

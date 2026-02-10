@@ -2,6 +2,7 @@ package com.shadow.fyp.controller;
 
 import com.shadow.fyp.model.AccessRequest;
 import com.shadow.fyp.service.AccessRequestService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -38,5 +39,11 @@ public class AccessRequestController {
     @PostMapping("/{id}/reject")
     public AccessRequest reject(@PathVariable Long id) throws Exception {
         return svc.reject(id);
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<?> download(@PathVariable Long id,
+                                      @RequestParam Long requesterId) {
+        return svc.download(id, requesterId);
     }
 }

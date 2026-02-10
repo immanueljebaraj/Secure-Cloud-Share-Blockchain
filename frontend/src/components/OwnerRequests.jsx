@@ -5,7 +5,7 @@ import {
   rejectRequest
 } from "../api/requests";
 
-const OwnerRequests = forwardRef(({ onAuditUpdate }, ref) => {
+const OwnerRequests = forwardRef(({ onAuditUpdate, user }, ref) => {
   const ownerId = 1;
   const [requests, setRequests] = useState([]);
 
@@ -61,9 +61,16 @@ const OwnerRequests = forwardRef(({ onAuditUpdate }, ref) => {
 
           {r.presignedUrl && (
             <div>
-              <a href={r.presignedUrl} target="_blank">
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `http://localhost:8080/api/requests/${r.id}/download?requesterId=${user?.id}`
+                  )
+                }
+              >
                 Download
-              </a>
+              </button>
             </div>
           )}
         </div>

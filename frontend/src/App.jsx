@@ -59,7 +59,7 @@ function App() {
       {loading ? <p>Loading...</p> : <FileList files={files} onRequestsUpdate={loadRequests} onAuditUpdate={loadAudit} />}
   
       <hr />
-      <OwnerRequests ref={ownerRequestsRef} onAuditUpdate={loadAudit} />
+      <OwnerRequests ref={ownerRequestsRef} onAuditUpdate={loadAudit} user={user} />
       <AuditLog ref={auditLogRef} />
     </div>
   );
