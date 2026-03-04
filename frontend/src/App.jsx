@@ -1,69 +1,76 @@
-import { useEffect, useState, useRef } from "react";
-import { fetchFiles } from "./api/files";
-import FileUpload from "./components/FileUpload";
-import FileList from "./components/FileList";
-import OwnerRequests from "./components/OwnerRequests";
-import AuditLog from "./components/AuditLog";
-import UserSwitcher from "./components/UserSwitcher";
-import { setUserHeaders } from "./api/axios";
+// App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import SecureShareHomepage from './public/SecureShareHomepage';
+import LoginPage           from './public/LoginPage';
+import RegisterPage        from './public/RegisterPage';
+import OwnerApp            from './app/owner/OwnerApp';
+import VendorApp           from './app/vendor/VendorApp';
 
+// ─── Auth Helpers ─────────────────────────────────────────────────────────────
 
-function App() {
-  const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ id: 1, role: "OWNER" });
-  const ownerRequestsRef = useRef(null);
-  const auditLogRef = useRef(null);
+const getSession = () => {
+  try {
+    const raw = localStorage.getItem('secureShareUser');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
+// ─── Protected Route ──────────────────────────────────────────────────────────
+// requiredRole: 'OWNER' | 'VENDOR' | null (any authenticated user)
 
-  const loadFiles = async () => {
-    setLoading(true);
-    const data = await fetchFiles();
-    setFiles(data);
-    setLoading(false);
-  };
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const session = getSession();
 
-  const loadRequests = async () => {
-    if (ownerRequestsRef.current) {
-      await ownerRequestsRef.current.loadRequests();
-    }
-  };
+  // No session at all → go to login
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
 
-  const loadAudit = async () => {
-    if (auditLogRef.current) {
-      await auditLogRef.current.loadAudit();
-    }
-  };
+  // Session exists but wrong role → redirect to their correct dashboard
+  if (requiredRole && session.role !== requiredRole) {
+    const fallback = session.role === 'OWNER' ? '/owner/dashboard' : '/vendor/browse';
+    return <Navigate to={fallback} replace />;
+  }
 
-  useEffect(() => {
-    setUserHeaders(user);
-  }, [user]);
-  
-  useEffect(() => {
-    loadFiles();
-  }, []);
+  return children;
+};
 
+// ─── App ──────────────────────────────────────────────────────────────────────
 
+export default function App() {
   return (
-    <div style={{ padding: "1rem" }}>
-      <h2>Cloud Secure File Sharing</h2>
-  
-      {/* USER CONTEXT */}
-      <UserSwitcher user={user} setUser={setUser} />
-      <hr />
-  
-      <h2>File Upload</h2>
-      <FileUpload onUploaded={loadFiles} />
-  
-      <h2>Files</h2>
-      {loading ? <p>Loading...</p> : <FileList files={files} onRequestsUpdate={loadRequests} onAuditUpdate={loadAudit} />}
-  
-      <hr />
-      <OwnerRequests ref={ownerRequestsRef} onAuditUpdate={loadAudit} user={user} />
-      <AuditLog ref={auditLogRef} />
-    </div>
-  );
-  
-}
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/"         element={<SecureShareHomepage />} />
+        <Route path="/login"    element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-export default App;
+        {/* Owner routes — protected, OWNER role only */}
+        <Route
+          path="/owner/*"
+          element={
+            <ProtectedRoute requiredRole="OWNER">
+              <OwnerApp />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Vendor routes — protected, VENDOR role only */}
+        <Route
+          path="/vendor/*"
+          element={
+            <ProtectedRoute requiredRole="VENDOR">
+              <VendorApp />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
