@@ -91,7 +91,7 @@ export default function OwnerLayout() {
   // Derive current page label from the last URL segment
   const segment     = location.pathname.split('/').filter(Boolean).pop();
   const currentPage = PAGE_TITLES[segment] ?? 'Overview';
-  const initials    = user?.id?.split('@')[0]?.slice(0, 2).toUpperCase() ?? 'OW';
+  const initials    = user?.email?.split('@')[0]?.slice(0, 2).toUpperCase() ?? 'OW';
 
   return (
     <div className="owner-shell">
@@ -139,7 +139,7 @@ export default function OwnerLayout() {
           <div className="sidebar-user-info">
             <div className="user-avatar">{initials}</div>
             <div className="user-details">
-              <div className="user-email">{user?.id ?? 'owner@secureshare.com'}</div>
+              <div className="user-email">{user?.email ?? 'owner@secureshare.com'}</div>
               <div className="user-role-badge">Owner</div>
             </div>
           </div>

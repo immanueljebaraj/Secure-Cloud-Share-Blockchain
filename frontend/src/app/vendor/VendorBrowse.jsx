@@ -1,18 +1,18 @@
 // src/app/vendor/VendorBrowse.jsx
 import { useEffect, useState } from 'react';
-import { fetchFiles }    from '../../api/files';
+import { fetchFiles }                      from '../../api/files';
 import { requestAccess, fetchVendorRequests } from '../../api/requests';
 
 const VENDOR_ID = 2;
 
 export default function VendorBrowse() {
-  const [files,       setFiles]       = useState([]);
-  const [requested,   setRequested]   = useState(new Set()); // fileIds already requested
-  const [reasons,     setReasons]     = useState({});        // fileId → reason string
-  const [submitting,  setSubmitting]  = useState(null);      // fileId currently submitting
-  const [search,      setSearch]      = useState('');
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState('');
+  const [files,      setFiles]      = useState([]);
+  const [requested,  setRequested]  = useState(new Set());
+  const [reasons,    setReasons]    = useState({});
+  const [submitting, setSubmitting] = useState(null);
+  const [search,     setSearch]     = useState('');
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
 
   useEffect(() => {
     async function load() {
@@ -23,9 +23,7 @@ export default function VendorBrowse() {
           fetchVendorRequests(VENDOR_ID),
         ]);
         setFiles(allFiles);
-        // Pre-mark files that already have a request from this vendor
-        const alreadyRequested = new Set(myRequests.map(r => r.fileId));
-        setRequested(alreadyRequested);
+        setRequested(new Set(myRequests.map(r => r.fileId)));
       } catch (err) {
         console.error('VendorBrowse load error:', err);
       } finally {
@@ -37,14 +35,11 @@ export default function VendorBrowse() {
 
   const handleRequest = async (fileId) => {
     const reason = reasons[fileId]?.trim();
-    if (!reason) {
-      setError(`Please enter a reason for file #${fileId}`);
-      return;
-    }
+    if (!reason) { setError(`Please enter a reason for file #${fileId}`); return; }
     setError('');
     setSubmitting(fileId);
     try {
-      await requestAccess({ fileId, requesterId: VENDOR_ID, reason });
+      await requestAccess({ fileId, reason });
       setRequested(prev => new Set([...prev, fileId]));
       setReasons(prev => ({ ...prev, [fileId]: '' }));
     } catch (err) {
@@ -55,13 +50,15 @@ export default function VendorBrowse() {
     }
   };
 
-  const getExt  = (name) => name?.split('.').pop()?.toUpperCase() ?? '—';
-  const filtered = files.filter(f =>
+  const getExt      = (name) => name?.split('.').pop()?.toUpperCase() ?? '—';
+  const shortHash   = (h) => h ? `${h.slice(0, 8)}…${h.slice(-6)}` : null;
+  const filtered    = files.filter(f =>
     f.filename?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <>
+      {/* Page Header */}
       <div className="page-header">
         <div className="page-header-left">
           <h1 className="page-title">Browse Files</h1>
@@ -69,12 +66,13 @@ export default function VendorBrowse() {
         </div>
       </div>
 
+      {/* Error banner */}
       {error && (
         <div style={{
-          display:'flex', alignItems:'center', gap:8,
-          padding:'10px 14px', marginBottom:16,
-          background:'var(--danger-bg)', border:'1px solid rgba(255,71,87,0.2)',
-          borderRadius:'var(--radius)', fontSize:13, color:'var(--danger)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px', marginBottom: 16,
+          background: 'var(--danger-bg)', border: '1px solid rgba(255,71,87,0.2)',
+          borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--danger)',
         }}>
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
@@ -83,6 +81,7 @@ export default function VendorBrowse() {
         </div>
       )}
 
+      {/* Toolbar */}
       <div className="browse-toolbar">
         <div className="search-input-wrap">
           <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
@@ -95,31 +94,32 @@ export default function VendorBrowse() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <span style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'IBM Plex Mono' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono' }}>
           {filtered.length} file{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
 
+      {/* Cards */}
       {loading ? (
         <div className="browse-grid">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="browse-card" style={{ animationDelay:`${i*0.04}s` }}>
+            <div key={i} className="browse-card" style={{ animationDelay: `${i * 0.04}s` }}>
               <div className="browse-card-header">
-                <div className="skeleton" style={{ width:34, height:34, borderRadius:8, flexShrink:0 }}/>
-                <div className="skeleton" style={{ flex:1, height:16, borderRadius:4 }}/>
+                <div className="skeleton" style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0 }} />
+                <div className="skeleton" style={{ flex: 1, height: 16, borderRadius: 4 }} />
               </div>
               <div className="browse-card-body">
-                <div className="skeleton" style={{ width:'60%', height:12, marginBottom:8 }}/>
-                <div className="skeleton" style={{ width:'80%', height:12 }}/>
+                <div className="skeleton" style={{ width: '60%', height: 12, marginBottom: 8 }} />
+                <div className="skeleton" style={{ width: '80%', height: 12 }} />
               </div>
               <div className="browse-card-footer">
-                <div className="skeleton" style={{ width:110, height:32, borderRadius:6 }}/>
+                <div className="skeleton" style={{ width: 110, height: 32, borderRadius: 6 }} />
               </div>
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state" style={{ marginTop:40 }}>
+        <div className="empty-state" style={{ marginTop: 40 }}>
           <div className="empty-state-icon">
             <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
               <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4z"/>
@@ -133,11 +133,9 @@ export default function VendorBrowse() {
           {filtered.map((f, i) => {
             const alreadyRequested = requested.has(f.id);
             return (
-              <div
-                key={f.id}
-                className="browse-card"
-                style={{ animationDelay:`${i*0.04}s` }}
-              >
+              <div key={f.id} className="browse-card" style={{ animationDelay: `${i * 0.04}s` }}>
+
+                {/* Card Header */}
                 <div className="browse-card-header">
                   <div className="browse-card-file-icon">
                     <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -148,6 +146,7 @@ export default function VendorBrowse() {
                   <span className="badge badge-file">{getExt(f.filename)}</span>
                 </div>
 
+                {/* Card Body */}
                 <div className="browse-card-body">
                   <div className="browse-card-meta">
                     <div className="browse-meta-item">
@@ -160,6 +159,36 @@ export default function VendorBrowse() {
                     </div>
                   </div>
 
+                  {/* ── SHA-256 Integrity Badge ─────────────────────────────── */}
+                  {f.fileHash && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '7px 10px', marginBottom: 10,
+                      background: 'var(--success-bg)',
+                      border: '1px solid rgba(0,201,167,0.2)',
+                      borderRadius: 'var(--radius)',
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--success)', flexShrink: 0 }}>
+                        <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                      </svg>
+                      <span style={{ fontSize: 10, color: 'var(--success)', fontFamily: 'IBM Plex Mono', letterSpacing: '0.04em' }}>
+                        SHA-256 VERIFIED
+                      </span>
+                      <span
+                        title={`Full hash: ${f.fileHash}\nClick to copy`}
+                        onClick={() => navigator.clipboard?.writeText(f.fileHash)}
+                        style={{
+                          marginLeft: 'auto', fontSize: 10,
+                          fontFamily: 'IBM Plex Mono', color: 'var(--success)',
+                          opacity: 0.8, cursor: 'pointer',
+                        }}
+                      >
+                        {shortHash(f.fileHash)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Reason input */}
                   {!alreadyRequested && (
                     <div className="reason-input-wrap">
                       <span className="reason-label">Reason for access</span>
@@ -176,6 +205,7 @@ export default function VendorBrowse() {
                   )}
                 </div>
 
+                {/* Card Footer */}
                 <div className="browse-card-footer">
                   {alreadyRequested ? (
                     <span className="badge badge-pending">
@@ -190,9 +220,7 @@ export default function VendorBrowse() {
                       onClick={() => handleRequest(f.id)}
                       disabled={submitting === f.id}
                     >
-                      {submitting === f.id ? (
-                        'Sending…'
-                      ) : (
+                      {submitting === f.id ? 'Sending…' : (
                         <>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
@@ -204,6 +232,7 @@ export default function VendorBrowse() {
                     </button>
                   )}
                 </div>
+
               </div>
             );
           })}

@@ -133,20 +133,21 @@ export default function OwnerAudit() {
               <th>Timestamp</th>
               <th>Tx Hash</th>
               <th>Block</th>
+              <th>Chain Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               [...Array(6)].map((_, i) => (
                 <tr key={i}>
-                  {[...Array(7)].map((_, j) => (
+                  {[...Array(8)].map((_, j) => (
                     <td key={j}><div className="skeleton" style={{ height: 14, borderRadius: 4 }} /></td>
                   ))}
                 </tr>
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="empty-state">
                     <div className="empty-state-icon">
                       <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor">
@@ -195,6 +196,40 @@ export default function OwnerAudit() {
                         <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
                       )}
                     </span>
+                  </td>
+                  <td>
+                    {l.txHash ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '3px 8px', borderRadius: 4,
+                        background: 'var(--success-bg)',
+                        border: '1px solid rgba(0,201,167,0.2)',
+                        fontSize: 11, fontFamily: 'IBM Plex Mono',
+                        color: 'var(--success)',
+                      }}>
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: 'var(--success)', flexShrink: 0,
+                        }} />
+                        Verified
+                      </span>
+                    ) : (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '3px 8px', borderRadius: 4,
+                        background: 'var(--warning-bg)',
+                        border: '1px solid rgba(255,179,71,0.2)',
+                        fontSize: 11, fontFamily: 'IBM Plex Mono',
+                        color: 'var(--warning)',
+                      }}>
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: 'var(--warning)', flexShrink: 0,
+                          animation: 'pulse 2s ease infinite',
+                        }} />
+                        Confirming…
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))

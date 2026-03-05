@@ -74,10 +74,7 @@ export default function OwnerFiles() {
     setUploading(true);
     setUploadError('');
     try {
-      const formData = new FormData();
-      formData.append('file', uploadFile_);
-      formData.append('ownerId', OWNER_ID);
-      await uploadFile(formData, (pct) => setProgress(pct));
+      await uploadFile(uploadFile_, OWNER_ID, (pct) => setProgress(pct));
       setUploadFile_(null);
       setProgress(0);
       setShowUpload(false);
@@ -249,7 +246,7 @@ export default function OwnerFiles() {
               <th>File Name</th>
               <th>Type</th>
               <th>Size</th>
-              <th>Uploaded</th>
+              <th>SHA-256 Hash</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -294,8 +291,24 @@ export default function OwnerFiles() {
                   <td>
                     <span className="badge badge-upload">{getExt(f.filename)}</span>
                   </td>
-                  <td><span className="mono">{formatSize(f.fileSize)}</span></td>
-                  <td><span className="mono">{formatDate(f.uploadedAt ?? f.createdAt)}</span></td>
+                  <td><span className="mono">{formatSize(f.size)}</span></td>
+                  <td>
+                    {f.fileHash ? (
+                      <span
+                        className="tx-hash"
+                        title={`SHA-256: ${f.fileHash}\nClick to copy`}
+                        onClick={() => navigator.clipboard?.writeText(f.fileHash)}
+                        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--success)', flexShrink: 0 }}>
+                          <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                        {f.fileHash.slice(0, 8)}…{f.fileHash.slice(-6)}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>—</span>
+                    )}
+                  </td>
                   <td>
                     <div className="actions-cell">
                       <button

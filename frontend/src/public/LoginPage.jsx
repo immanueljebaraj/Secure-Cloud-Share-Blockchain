@@ -5,6 +5,13 @@ import '../css/LoginPage.css';
 
 // ─── Auth Logic (kept separate from JSX) ─────────────────────────────────────
 
+// Maps demo emails to the numeric IDs seeded in the backend database.
+// X-USER-ID header must be a Long — IdentityFilter calls Long.parseLong()
+const ROLE_ID_MAP = {
+  'owner@secureshare.com':  1,
+  'vendor@secureshare.com': 2,
+};
+
 const validateCredentials = (email) => {
   if (email === 'owner@secureshare.com') {
     return { isValid: true, role: 'OWNER', redirectPath: '/owner/dashboard' };
@@ -17,7 +24,8 @@ const validateCredentials = (email) => {
 
 const storeAuthenticatedUser = (email, role) => {
   const user = {
-    id: email,
+    id:    ROLE_ID_MAP[email],  // numeric — sent as X-USER-ID header
+    email,                       // kept for display in sidebar
     role,
     loggedInAt: new Date().toISOString(),
   };

@@ -208,13 +208,47 @@ export default function OwnerDashboard() {
                       <strong>{log.action}</strong>
                       {' — '}
                       File <strong>#{log.fileId}</strong>
-                      {log.txHash && (
-                        <span style={{ marginLeft: 6, fontFamily: 'IBM Plex Mono', fontSize: 11, color: 'var(--accent-dim)' }}>
-                          {log.txHash.slice(0, 10)}…
+                      {' · '}
+                      <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 10 }}>
+                        User #{log.userId}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                      <div className="activity-time">{formatTime(log.createdAt)}</div>
+                      {log.txHash ? (
+                        <span
+                          title={`Tx: ${log.txHash}\nBlock: #${log.blockNumber ?? '—'}\nClick to copy`}
+                          onClick={() => navigator.clipboard?.writeText(log.txHash)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '1px 6px', borderRadius: 3,
+                            background: 'var(--success-bg)',
+                            border: '1px solid rgba(0,201,167,0.2)',
+                            fontSize: 10, fontFamily: 'IBM Plex Mono',
+                            color: 'var(--success)', cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)' }} />
+                          {log.txHash.slice(0, 8)}…
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '1px 6px', borderRadius: 3,
+                          background: 'var(--warning-bg)',
+                          border: '1px solid rgba(255,179,71,0.2)',
+                          fontSize: 10, fontFamily: 'IBM Plex Mono',
+                          color: 'var(--warning)',
+                        }}>
+                          <span style={{
+                            width: 5, height: 5, borderRadius: '50%',
+                            background: 'var(--warning)',
+                            animation: 'pulse 2s ease infinite',
+                          }} />
+                          confirming…
                         </span>
                       )}
                     </div>
-                    <div className="activity-time">{formatTime(log.createdAt)}</div>
                   </div>
                 </div>
               ))

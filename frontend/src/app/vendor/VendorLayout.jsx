@@ -67,7 +67,7 @@ export default function VendorLayout() {
 
   const segment     = location.pathname.split('/').filter(Boolean).pop();
   const currentPage = PAGE_TITLES[segment] ?? 'Vendor';
-  const initials    = user?.id?.split('@')[0]?.slice(0, 2).toUpperCase() ?? 'VE';
+  const initials = user?.email?.split('@')[0]?.slice(0, 2).toUpperCase() ?? 'VE';
 
   return (
     <div className="vendor-shell">
@@ -104,7 +104,7 @@ export default function VendorLayout() {
           <div className="sidebar-user-info">
             <div className="vendor-avatar">{initials}</div>
             <div className="user-details">
-              <div className="user-email">{user?.id ?? 'vendor@secureshare.com'}</div>
+            <div className="user-email">{user?.email ?? 'vendor@secureshare.com'}</div>
               <div className="vendor-role-badge">Vendor</div>
             </div>
           </div>
