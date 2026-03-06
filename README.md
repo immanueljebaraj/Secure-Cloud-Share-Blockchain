@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/favicon.svg" width="72" height="72" alt="SecureShare Shield"/>
+<img src="https://github.com/immanueljebaraj/Secure-Cloud-Share-Blockchain/blob/main/frontend/public/favicon.svg" width="72" height="72" alt="SecureShare Shield"/>
 
 # SecureShare
 
@@ -15,11 +15,9 @@
 
 *A research prototype implementing consent-driven, tamper-proof file sharing for enterprises and their vendors — with every action immutably recorded on the Ethereum blockchain.*
 
-[**Live Demo**](#demo-accounts) · [**Research Paper**](#research-paper) · [**Architecture**](#architecture) · [**Getting Started**](#getting-started)
+[**Architecture**](#architecture) · [**Getting Started**](#getting-started) · [**Demo Accounts**](#demo-accounts) · [**Research Paper**](#research-paper)
 
 ---
-
-![SecureShare Hero](docs/screenshot-homepage.png)
 
 </div>
 
