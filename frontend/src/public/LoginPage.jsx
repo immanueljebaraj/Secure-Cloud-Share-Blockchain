@@ -1,223 +1,178 @@
-// LoginPage.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../css/LoginPage.css';
+// src/public/LoginPage.jsx
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import '../css/PublicPages.css';
 
-// ─── Auth Logic (kept separate from JSX) ─────────────────────────────────────
-
-// Maps demo emails to the numeric IDs seeded in the backend database.
-// X-USER-ID header must be a Long — IdentityFilter calls Long.parseLong()
 const ROLE_ID_MAP = {
   'owner@secureshare.com':  1,
   'vendor@secureshare.com': 2,
 };
 
 const validateCredentials = (email) => {
-  if (email === 'owner@secureshare.com') {
-    return { isValid: true, role: 'OWNER', redirectPath: '/owner/dashboard' };
-  }
-  if (email === 'vendor@secureshare.com') {
-    return { isValid: true, role: 'VENDOR', redirectPath: '/vendor/browse' };
-  }
+  if (email === 'owner@secureshare.com')  return { isValid: true, role: 'OWNER',  redirectPath: '/owner/dashboard' };
+  if (email === 'vendor@secureshare.com') return { isValid: true, role: 'VENDOR', redirectPath: '/vendor/browse' };
   return { isValid: false, role: null, redirectPath: null };
 };
 
 const storeAuthenticatedUser = (email, role) => {
   const user = {
-    id:    ROLE_ID_MAP[email],  // numeric — sent as X-USER-ID header
-    email,                       // kept for display in sidebar
+    id:    ROLE_ID_MAP[email],
+    email,
     role,
     loggedInAt: new Date().toISOString(),
   };
-  localStorage.setItem('secureShareUser', JSON.stringify(user));
+  sessionStorage.setItem('secureShareUser', JSON.stringify(user));
 };
 
-const simulateNetworkDelay = () =>
-  new Promise((resolve) => setTimeout(resolve, 800));
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
-const LoginPage = () => {
-  const [email, setEmail]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError]           = useState('');
-  const [isLoading, setIsLoading]   = useState(false);
-
+export default function LoginPage() {
+  const [email,     setEmail]     = useState('');
+  const [password,  setPassword]  = useState('');
+  const [showPass,  setShowPass]  = useState(false);
+  const [error,     setError]     = useState('');
+  const [loading,   setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  useEffect(() => { document.title = 'SecureShare — Sign In'; }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (!email || !password) {
-      setError('Email and password are required.');
+    if (!email || !password) { setError('Email and password are required.'); return; }
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 700));
+    const { isValid, role, redirectPath } = validateCredentials(email);
+    if (!isValid) {
+      setError('Invalid credentials. Use the demo accounts below.');
+      setLoading(false);
       return;
     }
-
-    setIsLoading(true);
-
-    await simulateNetworkDelay();
-
-    const validation = validateCredentials(email);
-
-    if (validation.isValid) {
-      storeAuthenticatedUser(email, validation.role);
-      // isLoading intentionally left true — page is navigating away
-      navigate(validation.redirectPath);
-    } else {
-      setError(
-        'Invalid credentials. Use owner@secureshare.com or vendor@secureshare.com.'
-      );
-      setIsLoading(false);
-    }
+    storeAuthenticatedUser(email, role);
+    navigate(redirectPath, { replace: true });
   };
 
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    setError('Password reset is not available in the demo version.');
+  const fillDemo = (demoEmail) => {
+    setEmail(demoEmail);
+    setPassword('demo1234');
+    setError('');
   };
-
-  const handleGoHome = (e) => {
-    e.preventDefault();
-    navigate('/');
-  };
-
-  const handleGoRegister = (e) => {
-    e.preventDefault();
-    navigate('/register');
-  };
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="login-container">
-      <div className="login-card-wrapper">
-        <div className="login-card">
+    <div className="auth-shell">
 
-          {/* Logo and Header */}
-          <div className="login-header">
-            <div className="logo-icon">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 5L8 10V20C8 28 13 35 20 37C27 35 32 28 32 20V10L20 5Z" fill="#0A1929" stroke="#2D9CDB" strokeWidth="2"/>
-                <path d="M16 20L19 23L24 17" stroke="#2D9CDB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="20" cy="20" r="12" stroke="#2D9CDB" strokeWidth="1.5" strokeDasharray="2 2"/>
-              </svg>
-            </div>
-            <h1 className="login-title">SecureShare</h1>
-            <p className="login-subtitle">Sign in to your account</p>
+      {/* ── Left brand panel ────────────────────────────────────────────── */}
+      <div className="auth-left">
+        <div className="auth-left-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span className="auth-left-logo-text">SecureShare</span>
+        </div>
+
+        <div className="auth-left-content">
+          <h2 className="auth-left-title">
+            Every action.<br/>
+            Immutably recorded.
+          </h2>
+          <p className="auth-left-body">
+            Sign in to access your portal. File uploads, access approvals, and downloads
+            are all cryptographically logged on the Ethereum blockchain.
+          </p>
+          <div className="auth-trust-items">
+            {[
+              'SHA-256 integrity on every file',
+              'Consent-gated pre-signed download URLs',
+              'Immutable Ethereum audit trail',
+              'Role-isolated tab sessions',
+            ].map((t, i) => (
+              <div key={i} className="auth-trust-item">
+                <span className="auth-trust-dot" />
+                {t}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="auth-left-footer">
+          Sathyabama Institute of Science and Technology
+        </div>
+      </div>
+
+      {/* ── Right form panel ────────────────────────────────────────────── */}
+      <div className="auth-right">
+        <div className="auth-form-box">
+          <h1 className="auth-form-title">Welcome back</h1>
+          <p className="auth-form-sub">Sign in to your Owner or Vendor portal</p>
+
+          {/* Demo credentials */}
+          <div className="demo-creds">
+            <div className="demo-creds-title">Demo Accounts — click to fill</div>
+            {[
+              { email: 'owner@secureshare.com',  role: 'OWNER' },
+              { email: 'vendor@secureshare.com', role: 'VENDOR' },
+            ].map((d) => (
+              <div key={d.email} className="demo-cred-row" style={{ cursor: 'pointer', padding: '5px 0', borderRadius: 4, transition: 'opacity 0.15s' }} onClick={() => fillDemo(d.email)}>
+                <span className="demo-cred-label">{d.email}</span>
+                <span className="demo-cred-role">{d.role}</span>
+              </div>
+            ))}
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="error-message" role="alert">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM11 15H9V13H11V15ZM11 11H9V5H11V11Z" fill="#DC2626"/>
-              </svg>
-              <span>{error}</span>
+            <div className="form-error">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+              {error}
             </div>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="login-form" noValidate>
-
-            {/* Email */}
+          <form onSubmit={handleSubmit} noValidate>
             <div className="form-group">
-              <label htmlFor="email" className="form-label">Email address</label>
+              <label className="form-label">Email address</label>
               <input
+                className={`form-input ${error ? 'error' : ''}`}
                 type="email"
-                id="email"
-                className={`form-input ${error && !email ? 'input-error' : ''}`}
-                placeholder="name@company.com"
+                placeholder="you@secureshare.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                onChange={e => { setEmail(e.target.value); setError(''); }}
                 autoComplete="email"
               />
             </div>
 
-            {/* Password */}
             <div className="form-group">
-              <div className="password-header">
-                <label htmlFor="password" className="form-label">Password</label>
-              </div>
-              <input
-                type="password"
-                id="password"
-                className={`form-input ${error && !password ? 'input-error' : ''}`}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                autoComplete="current-password"
-              />
-            </div>
-
-            {/* Remember Me + Forgot Password */}
-            <div className="form-options">
-              <label className="checkbox-container">
+              <label className="form-label">Password</label>
+              <div className="form-input-wrap">
                 <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="checkbox-input"
-                  disabled={isLoading}
+                  className={`form-input ${error ? 'error' : ''}`}
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(''); }}
+                  autoComplete="current-password"
                 />
-                <span className="checkbox-label">Remember me</span>
-              </label>
-              <a href="#" className="forgot-link" onClick={handleForgotPassword}>
-                Forgot password?
-              </a>
+                <button type="button" className="form-input-icon" onClick={() => setShowPass(v => !v)}>
+                  {showPass
+                    ? <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
+                    : <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+                  }
+                </button>
+              </div>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className={`signin-button ${isLoading ? 'button-loading' : ''}`}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <span className="spinner"></span>
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
+            <button className="auth-submit-btn" type="submit" disabled={loading}>
+              {loading ? <><div className="spinner" />Signing in…</> : 'Sign In'}
             </button>
           </form>
 
-          {/* Demo Hint */}
-          <div className="demo-hint">
-            <p>Demo: owner@secureshare.com &nbsp;/&nbsp; vendor@secureshare.com</p>
-          </div>
+          <div className="auth-divider">or</div>
 
-          {/* Register prompt */}
-          <div className="register-prompt">
-            <span>Don&apos;t have an account? </span>
-            <a href="/register" className="register-link" onClick={handleGoRegister}>
-              Request access
-            </a>
+          <div className="auth-link-row">
+            Don't have an account?{' '}
+            <Link to="/register" className="auth-link">Create one</Link>
           </div>
-
-          {/* Back to Home */}
-          <div className="back-home">
-            <a href="/" className="back-home-link" onClick={handleGoHome}>
-              ← Back to Home
-            </a>
+          <div className="auth-link-row" style={{ marginTop: 8 }}>
+            <Link to="/" className="auth-link" style={{ color: 'var(--text-muted)', fontSize: 12 }}>← Back to homepage</Link>
           </div>
-
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="login-footer">
-        <p className="copyright">© 2025 SecureShare. All rights reserved.</p>
-      </footer>
     </div>
   );
-};
-
-export default LoginPage;
+}

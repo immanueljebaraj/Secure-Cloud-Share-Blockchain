@@ -55,19 +55,23 @@ export default function VendorLayout() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('secureShareUser');
+      const raw = sessionStorage.getItem('secureShareUser');
       if (raw) setUser(JSON.parse(raw));
     } catch { /* ignore */ }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('secureShareUser');
+    sessionStorage.removeItem('secureShareUser');
     navigate('/login');
   };
 
   const segment     = location.pathname.split('/').filter(Boolean).pop();
   const currentPage = PAGE_TITLES[segment] ?? 'Vendor';
   const initials = user?.email?.split('@')[0]?.slice(0, 2).toUpperCase() ?? 'VE';
+
+  useEffect(() => {
+    document.title = `SecureShare — ${currentPage} | Vendor Portal`;
+  }, [currentPage]);
 
   return (
     <div className="vendor-shell">

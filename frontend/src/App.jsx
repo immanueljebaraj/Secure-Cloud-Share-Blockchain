@@ -10,7 +10,7 @@ import VendorApp           from './app/vendor/VendorApp';
 
 const getSession = () => {
   try {
-    const raw = localStorage.getItem('secureShareUser');
+    const raw = sessionStorage.getItem('secureShareUser');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

@@ -5,8 +5,11 @@ import com.shadow.fyp.model.AuditLog;
 import com.shadow.fyp.repository.FileRepository;
 import com.shadow.fyp.repository.AuditLogRepository;
 import com.shadow.fyp.util.HashUtil;
+import com.shadow.fyp.util.RequestContext;
+import com.shadow.fyp.model.UserRole;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,5 +85,35 @@ public class FileService {
             // return metadata
             return savedFile;
         }
+    }
+
+    public void deleteFile(Long fileId) throws Exception {
+        if (RequestContext.role() != UserRole.OWNER) {
+            throw new SecurityException("Only owners can delete files");
+        }
+        FileEntity f = fileRepository.findById(fileId)
+            .orElseThrow(() -> new IllegalArgumentException("File not found: " + fileId));
+
+        // Remove from MinIO
+        minioClient.removeObject(
+            RemoveObjectArgs.builder()
+                .bucket(bucket)
+                .object(f.getStorageUrl().replace(bucket + "/", ""))
+                .build()
+        );
+
+        // Audit log + blockchain
+        AuditLog al = new AuditLog();
+        al.setFileId(fileId);
+        al.setUserId(RequestContext.userId());
+        al.setAction("DELETE");
+        al.setPayload("{\"filename\":\"" + f.getFilename() + "\"}");
+        al = auditLogRepository.save(al);
+
+        final Long auditId = al.getId();
+        blockchainService.logFileEventAsync(f.getFileHash(), RequestContext.userId(), 4, 
+            "{\"fileId\":" + fileId + "}", auditId);
+
+        fileRepository.deleteById(fileId);
     }
 }

@@ -1,109 +1,191 @@
-// RegisterPage.jsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../css/RegisterPage.css';
+// src/public/RegisterPage.jsx
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import '../css/PublicPages.css';
 
-const RegisterPage = () => {
+export default function RegisterPage() {
+  const [form,     setForm]     = useState({ name: '', email: '', password: '', confirm: '', role: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
   const navigate = useNavigate();
 
-  const handleBackToHome = (e) => {
-    e.preventDefault();
-    navigate('/');
-  };
+  useEffect(() => { document.title = 'SecureShare — Create Account'; }, []);
 
-  const handleGoLogin = (e) => {
+  const set = (k) => (e) => { setForm(f => ({ ...f, [k]: e.target.value })); setError(''); };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    if (!form.name || !form.email || !form.password || !form.role) { setError('All fields are required.'); return; }
+    if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
+    if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 900));
+    // In the demo system registration is informational — redirect to login
     navigate('/login');
   };
 
   return (
-    <div className="register-container">
+    <div className="auth-shell">
 
-      {/* Top Navigation */}
-      <nav className="register-nav">
-        <div className="nav-container">
-          <div className="nav-logo" onClick={handleBackToHome} style={{ cursor: 'pointer' }}>
-            SecureShare
-          </div>
-          <a href="/" className="back-link" onClick={handleBackToHome}>
-            ← Back to Home
-          </a>
+      {/* ── Left brand panel ────────────────────────────────────────────── */}
+      <div className="auth-left">
+        <div className="auth-left-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span className="auth-left-logo-text">SecureShare</span>
         </div>
-      </nav>
 
-      {/* Main Content */}
-      <div className="register-content">
-        <div className="register-card-wrapper">
-          <div className="register-card">
-
-            {/* Header */}
-            <div className="register-header">
-              <div className="logo-icon">
-                <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 5L8 10V20C8 28 13 35 20 37C27 35 32 28 32 20V10L20 5Z" fill="#0A1929" stroke="#2D9CDB" strokeWidth="2"/>
-                  <path d="M16 20L19 23L24 17" stroke="#2D9CDB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="20" cy="20" r="12" stroke="#2D9CDB" strokeWidth="1.5" strokeDasharray="2 2"/>
-                </svg>
+        <div className="auth-left-content">
+          <h2 className="auth-left-title">
+            Join SecureShare.<br/>
+            Two roles. One system.
+          </h2>
+          <p className="auth-left-body">
+            Register as a file owner to upload, manage, and govern document access.
+            Or as a vendor to browse and request files from collaborating organisations.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00B4D8' }} />
+                <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 11, color: '#00B4D8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Owner</span>
               </div>
-              <h1 className="register-title">Create an Account</h1>
-              <p className="register-subtitle">
-                User registration will be available in a future release.
+              <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                Upload files, approve or reject vendor access requests, and view the full blockchain audit log.
               </p>
             </div>
-
-            {/* Info Box */}
-            <div className="info-box">
-              <div className="info-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V11H13V17ZM13 9H11V7H13V9Z" fill="#2D9CDB"/>
-                </svg>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00C9A7' }} />
+                <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 11, color: '#00C9A7', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Vendor</span>
               </div>
-              <p className="info-text">
-                SecureShare currently supports role-based demo access.
-                Full account registration and authentication will be implemented soon.
+              <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                Browse available files, submit access requests with a stated reason, and download approved files within their expiry window.
               </p>
             </div>
-
-            {/* Demo Access Info */}
-            <div className="demo-access">
-              <h3 className="demo-title">Demo Access Available:</h3>
-              <div className="demo-credentials">
-                <div className="credential-item">
-                  <span className="credential-role">Owner:</span>
-                  <code className="credential-email">owner@secureshare.com</code>
-                </div>
-                <div className="credential-item">
-                  <span className="credential-role">Vendor:</span>
-                  <code className="credential-email">vendor@secureshare.com</code>
-                </div>
-              </div>
-            </div>
-
-            {/* Disabled Button */}
-            <button className="coming-soon-button" disabled>
-              <span className="button-icon">⏳</span>
-              Registration Coming Soon
-            </button>
-
-            {/* Sign In Link */}
-            <div className="signin-prompt">
-              <span>Already have access? </span>
-              <a href="/login" className="signin-link" onClick={handleGoLogin}>
-                Sign in instead
-              </a>
-            </div>
-
           </div>
+        </div>
+
+        <div className="auth-left-footer">
+          Sathyabama Institute of Science and Technology
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="register-footer">
-        <p className="copyright">© 2025 SecureShare. All rights reserved.</p>
-      </footer>
+      {/* ── Right form panel ────────────────────────────────────────────── */}
+      <div className="auth-right">
+        <div className="auth-form-box">
+          <h1 className="auth-form-title">Create account</h1>
+          <p className="auth-form-sub">Fill in your details and select a role to get started</p>
 
+          {error && (
+            <div className="form-error">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="form-group">
+              <label className="form-label">Full Name</label>
+              <input className="form-input" type="text" placeholder="Your full name" value={form.name} onChange={set('name')} autoComplete="name" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input className="form-input" type="email" placeholder="you@company.com" value={form.email} onChange={set('email')} autoComplete="email" />
+            </div>
+
+            {/* Role selector */}
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {['OWNER', 'VENDOR'].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => { setForm(f => ({ ...f, role: r })); setError(''); }}
+                    style={{
+                      padding: '11px 14px',
+                      borderRadius: 'var(--radius)',
+                      border: `1px solid ${form.role === r ? (r === 'OWNER' ? 'rgba(0,180,216,0.6)' : 'rgba(0,201,167,0.6)') : 'var(--border)'}`,
+                      background: form.role === r ? (r === 'OWNER' ? 'rgba(0,180,216,0.1)' : 'rgba(0,201,167,0.1)') : 'var(--bg-input)',
+                      color: form.role === r ? (r === 'OWNER' ? '#00B4D8' : '#00C9A7') : 'var(--text-muted)',
+                      fontFamily: 'IBM Plex Mono',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    {r === 'OWNER' ? '⬡ File Owner' : '⬡ Vendor'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <div className="form-input-wrap">
+                <input
+                  className="form-input"
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="Minimum 8 characters"
+                  value={form.password}
+                  onChange={set('password')}
+                  autoComplete="new-password"
+                />
+                <button type="button" className="form-input-icon" onClick={() => setShowPass(v => !v)}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Confirm Password</label>
+              <input
+                className={`form-input ${error.includes('match') ? 'error' : ''}`}
+                type={showPass ? 'text' : 'password'}
+                placeholder="Repeat your password"
+                value={form.confirm}
+                onChange={set('confirm')}
+                autoComplete="new-password"
+              />
+            </div>
+
+            {/* Password strength indicator */}
+            {form.password.length > 0 && (
+              <div style={{ marginTop: -10, marginBottom: 16 }}>
+                <div style={{ height: 3, borderRadius: 2, background: 'var(--bg-surface)', overflow: 'hidden', marginBottom: 4 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 2, transition: 'width 0.3s ease',
+                    width: form.password.length >= 12 ? '100%' : form.password.length >= 8 ? '65%' : '30%',
+                    background: form.password.length >= 12 ? 'var(--success)' : form.password.length >= 8 ? 'var(--warning)' : 'var(--danger)',
+                  }} />
+                </div>
+                <span style={{ fontSize: 11, fontFamily: 'IBM Plex Mono', color: 'var(--text-muted)' }}>
+                  {form.password.length >= 12 ? 'Strong' : form.password.length >= 8 ? 'Acceptable' : 'Too short'}
+                </span>
+              </div>
+            )}
+
+            <button className="auth-submit-btn" type="submit" disabled={loading}>
+              {loading ? <><div className="spinner" style={{ borderTopColor: '#000' }} />Creating account…</> : 'Create Account'}
+            </button>
+          </form>
+
+          <div className="auth-link-row" style={{ marginTop: 20 }}>
+            Already have an account?{' '}
+            <Link to="/login" className="auth-link">Sign in</Link>
+          </div>
+          <div className="auth-link-row" style={{ marginTop: 8 }}>
+            <Link to="/" className="auth-link" style={{ color: 'var(--text-muted)', fontSize: 12 }}>← Back to homepage</Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default RegisterPage;
+}

@@ -1,16 +1,14 @@
 // src/app/vendor/VendorRequests.jsx
 import { useEffect, useState } from 'react';
-import { fetchVendorRequests, getDownloadUrl, requestAccess } from '../../api/requests';
+import { fetchVendorRequests, getDownloadUrl } from '../../api/requests';
 
 const VENDOR_ID = 2;
 const FILTERS   = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
 
 export default function VendorRequests() {
-  const [requests,   setRequests]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [filter,     setFilter]     = useState('ALL');
-  const [reRequest,  setReRequest]  = useState({});   // requestId → reason string
-  const [requesting, setRequesting] = useState(null); // requestId currently submitting
+  const [requests, setRequests] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [filter,   setFilter]   = useState('ALL');
 
   const load = async () => {
     setLoading(true);
@@ -61,21 +59,6 @@ export default function VendorRequests() {
 
   const handleDownload = (requestId) => {
     window.open(getDownloadUrl(requestId, VENDOR_ID), '_blank');
-  };
-
-  const handleReRequest = async (r) => {
-    const reason = reRequest[r.id]?.trim();
-    if (!reason) return;
-    setRequesting(r.id);
-    try {
-      await requestAccess({ fileId: r.fileId, reason });
-      setReRequest(prev => ({ ...prev, [r.id]: '' }));
-      await load(); // refresh list — new PENDING card will appear
-    } catch (err) {
-      console.error('re-request error:', err);
-    } finally {
-      setRequesting(null);
-    }
   };
 
   const statusBadge = (status) => {
@@ -199,27 +182,9 @@ export default function VendorRequests() {
                     Download File
                   </button>
                 ) : r.status === 'APPROVED' && isExpired(r.expiresAt) ? (
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: 'var(--danger)', fontFamily: 'IBM Plex Mono' }}>
-                      ⚠ Link expired
-                    </span>
-                    <textarea
-                      className="reason-input"
-                      rows={2}
-                      placeholder="Reason for requesting again…"
-                      value={reRequest[r.id] ?? ''}
-                      onChange={(e) =>
-                        setReRequest(prev => ({ ...prev, [r.id]: e.target.value }))
-                      }
-                    />
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleReRequest(r)}
-                      disabled={requesting === r.id || !reRequest[r.id]?.trim()}
-                    >
-                      {requesting === r.id ? 'Sending…' : 'Request Again'}
-                    </button>
-                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--danger)', fontFamily: 'IBM Plex Mono' }}>
+                    ⚠ Expired — go to Browse Files to request again
+                  </span>
                 ) : r.status === 'PENDING' ? (
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono' }}>
                     Awaiting owner approval

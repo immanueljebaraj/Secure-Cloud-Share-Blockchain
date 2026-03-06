@@ -37,5 +37,16 @@ public class FileController {
     public List<FileEntity> getAllFiles() {
         return fileRepository.findAll();
     }
-    
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        try {
+            fileService.deleteFile(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Delete failed: " + e.getMessage());
+        }
+    }
+
 }

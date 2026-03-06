@@ -13,14 +13,16 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   try {
-    const raw = localStorage.getItem('secureShareUser');
+    // sessionStorage is tab-isolated — each tab has its own session,
+    // so owner and vendor can be open simultaneously without colliding.
+    const raw = sessionStorage.getItem('secureShareUser');
     if (raw) {
       const user = JSON.parse(raw);
-      if (user?.id)   config.headers['X-USER-ID']   = user.id;
-      if (user?.role) config.headers['X-USER-ROLE']  = user.role;
+      if (user?.id   != null) config.headers['X-USER-ID']   = String(user.id);
+      if (user?.role != null) config.headers['X-USER-ROLE'] = String(user.role);
     }
   } catch {
-    // malformed localStorage — ignore, request goes through without headers
+    // malformed sessionStorage — request goes through without headers
   }
   return config;
 });

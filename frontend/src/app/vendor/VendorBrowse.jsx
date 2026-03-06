@@ -7,7 +7,7 @@ const VENDOR_ID = 2;
 
 export default function VendorBrowse() {
   const [files,      setFiles]      = useState([]);
-  const [requested,  setRequested]  = useState(new Set());
+  const [myRequests, setMyRequests] = useState([]); // full request objects
   const [reasons,    setReasons]    = useState({});
   const [submitting, setSubmitting] = useState(null);
   const [search,     setSearch]     = useState('');
@@ -18,12 +18,12 @@ export default function VendorBrowse() {
     async function load() {
       setLoading(true);
       try {
-        const [allFiles, myRequests] = await Promise.all([
+        const [allFiles, reqs] = await Promise.all([
           fetchFiles(),
           fetchVendorRequests(VENDOR_ID),
         ]);
         setFiles(allFiles);
-        setRequested(new Set(myRequests.map(r => r.fileId)));
+        setMyRequests(reqs);
       } catch (err) {
         console.error('VendorBrowse load error:', err);
       } finally {
@@ -33,6 +33,25 @@ export default function VendorBrowse() {
     load();
   }, []);
 
+  // For a given fileId, return the most recent request or null
+  const getRequest = (fileId) =>
+    myRequests
+      .filter(r => r.fileId === fileId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] ?? null;
+
+  // A file is "blocked" (can't re-request) if there's a PENDING or a
+  // non-expired APPROVED request. Expired APPROVED and REJECTED are re-requestable.
+  const isBlocked = (fileId) => {
+    const req = getRequest(fileId);
+    if (!req) return false;
+    if (req.status === 'PENDING') return true;
+    if (req.status === 'APPROVED') {
+      const expired = req.expiresAt && new Date(req.expiresAt) < new Date();
+      return !expired; // blocked only if NOT expired
+    }
+    return false; // REJECTED → allow re-request
+  };
+
   const handleRequest = async (fileId) => {
     const reason = reasons[fileId]?.trim();
     if (!reason) { setError(`Please enter a reason for file #${fileId}`); return; }
@@ -40,7 +59,9 @@ export default function VendorBrowse() {
     setSubmitting(fileId);
     try {
       await requestAccess({ fileId, reason });
-      setRequested(prev => new Set([...prev, fileId]));
+      // Refresh requests so isBlocked() updates immediately
+      const updated = await fetchVendorRequests(VENDOR_ID);
+      setMyRequests(updated);
       setReasons(prev => ({ ...prev, [fileId]: '' }));
     } catch (err) {
       console.error('requestAccess error:', err);
@@ -131,7 +152,10 @@ export default function VendorBrowse() {
       ) : (
         <div className="browse-grid">
           {filtered.map((f, i) => {
-            const alreadyRequested = requested.has(f.id);
+            const blocked = isBlocked(f.id);
+            const req     = getRequest(f.id);
+            const expired = req?.status === 'APPROVED' && req.expiresAt && new Date(req.expiresAt) < new Date();
+            const rejected = req?.status === 'REJECTED';
             return (
               <div key={f.id} className="browse-card" style={{ animationDelay: `${i * 0.04}s` }}>
 
@@ -188,10 +212,12 @@ export default function VendorBrowse() {
                     </div>
                   )}
 
-                  {/* Reason input */}
-                  {!alreadyRequested && (
+                  {/* Reason input — show when not blocked */}
+                  {!blocked && (
                     <div className="reason-input-wrap">
-                      <span className="reason-label">Reason for access</span>
+                      <span className="reason-label">
+                        {expired ? 'Link expired — reason to request again' : rejected ? 'Reason for new request' : 'Reason for access'}
+                      </span>
                       <textarea
                         className="reason-input"
                         rows={2}
@@ -207,29 +233,41 @@ export default function VendorBrowse() {
 
                 {/* Card Footer */}
                 <div className="browse-card-footer">
-                  {alreadyRequested ? (
+                  {blocked ? (
                     <span className="badge badge-pending">
                       <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                       </svg>
-                      Request Sent
+                      {req?.status === 'APPROVED' ? 'Access Granted' : 'Request Sent'}
                     </span>
                   ) : (
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleRequest(f.id)}
-                      disabled={submitting === f.id}
-                    >
-                      {submitting === f.id ? 'Sending…' : (
-                        <>
-                          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
-                          </svg>
-                          Request Access
-                        </>
+                    <>
+                      {expired && (
+                        <span style={{ fontSize: 11, color: 'var(--danger)', fontFamily: 'IBM Plex Mono', marginRight: 8 }}>
+                          ⚠ Expired
+                        </span>
                       )}
-                    </button>
+                      {rejected && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', marginRight: 8 }}>
+                          Previously rejected
+                        </span>
+                      )}
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleRequest(f.id)}
+                        disabled={submitting === f.id}
+                      >
+                        {submitting === f.id ? 'Sending…' : (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                            </svg>
+                            {expired || rejected ? 'Request Again' : 'Request Access'}
+                          </>
+                        )}
+                      </button>
+                    </>
                   )}
                 </div>
 

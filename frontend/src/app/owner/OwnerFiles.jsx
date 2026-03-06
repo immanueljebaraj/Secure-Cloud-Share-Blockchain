@@ -7,7 +7,7 @@ const OWNER_ID = 1;
 
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 
-function DeleteModal({ file, onConfirm, onCancel }) {
+function DeleteModal({ file, onConfirm, onCancel, error }) {
   if (!file) return null;
   return (
     <div className="modal-overlay" onClick={onCancel}>
@@ -22,6 +22,17 @@ function DeleteModal({ file, onConfirm, onCancel }) {
           Are you sure you want to delete <strong>{file.filename}</strong>?
           This action will be permanently recorded on the blockchain and cannot be undone.
         </p>
+        {error && (
+          <div style={{
+            padding: '8px 12px', marginBottom: 12,
+            background: 'var(--danger-bg)',
+            border: '1px solid rgba(255,71,87,0.2)',
+            borderRadius: 'var(--radius)',
+            fontSize: 12, color: 'var(--danger)',
+          }}>
+            {error}
+          </div>
+        )}
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
           <button className="btn btn-danger"    onClick={onConfirm}>Delete File</button>
@@ -73,13 +84,22 @@ export default function OwnerFiles() {
     if (!uploadFile_) { setUploadError('Please choose a file first.'); return; }
     setUploading(true);
     setUploadError('');
+    setUploadStage('encrypting');
     try {
-      await uploadFile(uploadFile_, OWNER_ID, (pct) => setProgress(pct));
+      await uploadFile(uploadFile_, OWNER_ID, (pct) => {
+        setProgress(pct);
+        setUploadStage(getStage(pct));
+      });
+      setUploadStage('done');
+      // Hold 'done' state briefly so user can see it
+      await new Promise(r => setTimeout(r, 1200));
       setUploadFile_(null);
       setProgress(0);
+      setUploadStage(null);
       setShowUpload(false);
       await loadFiles();
     } catch (err) {
+      setUploadStage(null);
       setUploadError(err.response?.data ?? 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
@@ -88,14 +108,34 @@ export default function OwnerFiles() {
 
   // ── Delete ──────────────────────────────────────────────────────────────────
 
+  const [deleteError,  setDeleteError]  = useState('');
+  const [uploadStage,  setUploadStage]  = useState(null); // null | 'encrypting' | 'hashing' | 'blockchain' | 'done'
+
+  // Stage sequence driven by upload progress percentage
+  const getStage = (pct) => {
+    if (pct < 30)  return 'encrypting';
+    if (pct < 60)  return 'hashing';
+    if (pct < 90)  return 'blockchain';
+    return 'done';
+  };
+
+  const STAGES = [
+    { key: 'encrypting', label: 'Encrypting file',           sub: 'Preparing secure transfer to cloud storage' },
+    { key: 'hashing',    label: 'Computing SHA-256 hash',    sub: 'Generating cryptographic integrity fingerprint' },
+    { key: 'blockchain', label: 'Writing blockchain entry',  sub: 'Recording immutable audit trail on-chain' },
+    { key: 'done',       label: 'File uploaded successfully', sub: 'Blockchain log confirmed' },
+  ];
+
   const handleDeleteConfirm = async () => {
     if (!selectedFile) return;
+    setDeleteError('');
     try {
       await api.delete(`/files/${selectedFile.id}`);
       setSelectedFile(null);
       await loadFiles();
     } catch (err) {
       console.error('delete error:', err);
+      setDeleteError(err.response?.data ?? 'Delete failed. Please try again.');
     }
   };
 
@@ -329,11 +369,127 @@ export default function OwnerFiles() {
         </table>
       </div>
 
+      {/* Upload Stage Modal */}
+      {uploadStage && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(6,13,20,0.85)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: 16,
+            padding: '36px 40px',
+            width: 420,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          }}>
+            {/* Title */}
+            <div style={{ marginBottom: 28, textAlign: 'center' }}>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+                Secure Upload
+              </div>
+              <div style={{ fontSize: 15, color: 'var(--text-secondary)' }}>
+                {uploadFile_?.name}
+              </div>
+            </div>
+
+            {/* Stage list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
+              {STAGES.map((s, i) => {
+                const stageKeys = STAGES.map(x => x.key);
+                const currentIdx = stageKeys.indexOf(uploadStage);
+                const thisIdx    = stageKeys.indexOf(s.key);
+                const isDone     = thisIdx < currentIdx || uploadStage === 'done';
+                const isActive   = s.key === uploadStage && uploadStage !== 'done';
+                const isPending  = thisIdx > currentIdx && uploadStage !== 'done';
+
+                return (
+                  <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    {/* Step icon */}
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: isDone ? 'var(--success-bg)' : isActive ? 'var(--accent-glow)' : 'var(--bg-surface)',
+                      border: `1px solid ${isDone ? 'rgba(0,201,167,0.4)' : isActive ? 'rgba(0,180,216,0.4)' : 'var(--border)'}`,
+                      transition: 'all 0.3s ease',
+                    }}>
+                      {isDone ? (
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ color: 'var(--success)' }}>
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                        </svg>
+                      ) : isActive ? (
+                        <div style={{
+                          width: 10, height: 10, borderRadius: '50%',
+                          background: 'var(--accent)',
+                          animation: 'pulse 1s ease infinite',
+                        }} />
+                      ) : (
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />
+                      )}
+                    </div>
+                    {/* Label */}
+                    <div>
+                      <div style={{
+                        fontSize: 13.5, fontWeight: isActive ? 500 : 400,
+                        color: isDone ? 'var(--success)' : isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                        transition: 'color 0.3s ease',
+                      }}>
+                        {s.label}
+                      </div>
+                      {(isDone || isActive) && (
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {s.sub}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress bar */}
+            {uploadStage !== 'done' && (
+              <div style={{
+                height: 4, background: 'var(--bg-surface)',
+                borderRadius: 2, overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: 2,
+                  background: 'linear-gradient(90deg, var(--accent), var(--success))',
+                  width: `${progress}%`,
+                  transition: 'width 0.4s ease',
+                }} />
+              </div>
+            )}
+
+            {/* Done state */}
+            {uploadStage === 'done' && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '10px', borderRadius: 8,
+                background: 'var(--success-bg)',
+                border: '1px solid rgba(0,201,167,0.2)',
+                fontSize: 13, color: 'var(--success)',
+                fontFamily: 'IBM Plex Mono',
+              }}>
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                </svg>
+                Immutable record written to blockchain
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Delete confirm modal */}
       <DeleteModal
         file={selectedFile}
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setSelectedFile(null)}
+        onCancel={() => { setSelectedFile(null); setDeleteError(''); }}
+        error={deleteError}
       />
     </>
   );

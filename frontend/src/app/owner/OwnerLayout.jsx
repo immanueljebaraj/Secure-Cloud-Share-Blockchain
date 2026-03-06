@@ -78,13 +78,13 @@ export default function OwnerLayout() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('secureShareUser');
+      const raw = sessionStorage.getItem('secureShareUser');
       if (raw) setUser(JSON.parse(raw));
     } catch { /* ignore */ }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('secureShareUser');
+    sessionStorage.removeItem('secureShareUser');
     navigate('/login');
   };
 
@@ -92,6 +92,11 @@ export default function OwnerLayout() {
   const segment     = location.pathname.split('/').filter(Boolean).pop();
   const currentPage = PAGE_TITLES[segment] ?? 'Overview';
   const initials    = user?.email?.split('@')[0]?.slice(0, 2).toUpperCase() ?? 'OW';
+
+  // Dynamic browser tab title
+  useEffect(() => {
+    document.title = `SecureShare — ${currentPage} | Owner Portal`;
+  }, [currentPage]);
 
   return (
     <div className="owner-shell">
